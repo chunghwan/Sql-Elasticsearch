@@ -63,6 +63,8 @@ This repository contains **dll** file for SQL Server.
 
     ```sql
     PRINT dbo.fn_get_webrequest('http://127.0.01:9200', NULL, NULL);
+    GO
+    -- result
     {
       "name" : "0f4rETL",
       "cluster_name" : "elasticsearch",
@@ -92,7 +94,7 @@ This repository contains **dll** file for SQL Server.
             "message" : "trying out Elasticsearch"
         }'
         , NULL
-        , NULL);
+        , NULL)  as result;
     ```
 
 
@@ -154,5 +156,36 @@ This repository contains **dll** file for SQL Server.
 #### Elasticsearch Result handle on SQL Server
 
 
+```sql
+DECLARE @term NVARCHAR(MAX)
+	, @body NVARCHAR(MAX)
+	, @json NVARCHAR(MAX);
+
+SET @term = 'trying';
+SET @body = '{
+	"from" : 0
+	, "size" : 2000
+	,"sort" : ["_score",{ "post_date" : {"order" : "desc"}}]
+	, "query" : {
+		"multi_match" : { 
+			"query" : "' +@term+'"
+			, "fields" : ["user", "message"] 
+			}
+		}
+	}';
+
+SET @json = dbo.fn_post_webrequest('http://127.0.01:9200/_search?scroll=15s', @body, null, null) ;
+
+SELECT *
+FROM OPENJSON(@json, N'lax $.hits.hits')  
+WITH (
+	post_date nvarchar(max) N'$._source."post_date"'
+	, tweet_user nvarchar(max) N'$._source."user"'
+	, message nvarchar(max) N'$._source."message"'
+) as result
 ```
-```
+
+| post_date | tweet_user | message |
+| ------ | ------ | ------ |
+| 2009-11-15T14:12:12 | kimchy | trying out Elasticsearch |
+
