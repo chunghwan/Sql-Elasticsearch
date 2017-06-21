@@ -34,7 +34,7 @@ This repository contains **dll** file for SQL Server.
 
     ```
 
-4. ADD Function on SQL Server
+4. ADD Function on SQL Server.
 
     ```SQL
     CREATE FUNCTION dbo.fn_get_webrequest(
@@ -115,7 +115,7 @@ This repository contains **dll** file for SQL Server.
     }
     ```
 
-2. Get SQL Result for Elasticsearch
+2. Get SQL Result for Elasticsearch.
 
     ```sql
     SELECT dbo.fn_get_webrequest(
@@ -157,35 +157,52 @@ This repository contains **dll** file for SQL Server.
 
 
 ```sql
+    SELECT *
+    FROM OPENJSON(
+        dbo.fn_get_webrequest('http://127.0.01:9200/twitter/_mapping', null, null)
+        ,	N'lax $.twitter.mappings.tweet.properties'
+    ) as result
+```
+
+result
+
+| key | value | type | 
+| ------ | ------ | ------ |
+| message | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 | 
+| post_date | {"type":"date"} | 5 | 
+| user | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 | 
+
+
+```sql
 DECLARE @term NVARCHAR(MAX)
-	, @body NVARCHAR(MAX)
-	, @json NVARCHAR(MAX);
+    , @body NVARCHAR(MAX)
+    , @json NVARCHAR(MAX);
 
 SET @term = 'trying';
 SET @body = '{
-	"from" : 0
-	, "size" : 2000
-	,"sort" : ["_score",{ "post_date" : {"order" : "desc"}}]
-	, "query" : {
-		"multi_match" : { 
-			"query" : "' +@term+'"
-			, "fields" : ["user", "message"] 
-			}
-		}
-	}';
+    "from" : 0
+    , "size" : 2000
+    ,"sort" : ["_score",{ "post_date" : {"order" : "desc"}}]
+    , "query" : {
+        "multi_match" : { 
+            "query" : "' +@term+'"
+            , "fields" : ["user", "message"] 
+            }
+        }
+    }';
 
 SET @json = dbo.fn_post_webrequest('http://127.0.01:9200/_search?scroll=15s', @body, null, null) ;
 
 SELECT *
 FROM OPENJSON(@json, N'lax $.hits.hits')  
 WITH (
-	post_date nvarchar(max) N'$._source."post_date"'
-	, tweet_user nvarchar(max) N'$._source."user"'
-	, message nvarchar(max) N'$._source."message"'
+    post_date nvarchar(max) N'$._source."post_date"'
+    , tweet_user nvarchar(max) N'$._source."user"'
+    , message nvarchar(max) N'$._source."message"'
 ) as result
 ```
+result
 
 | post_date | tweet_user | message |
 | ------ | ------ | ------ |
 | 2009-11-15T14:12:12 | kimchy | trying out Elasticsearch |
-
