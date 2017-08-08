@@ -1,22 +1,18 @@
-﻿## SQL Server to Elasticsearch
-
+﻿# SQL Server to Elasticsearch
 
 This repository contains **dll** file for SQL Server.
 
-
-### Installation
+## Installation
 
 1. Install [Docker](https://www.docker.com/).
 
-2. Download from public [Docker Hub Registry](https://registry.hub.docker.com/): `docker pull elasticsearch`
+1. Download from public [Docker Hub Registry](https://registry.hub.docker.com/): `docker pull elasticsearch`
 
-   
-    ```
+    ```bash
     docker pull elasticsearch
     docker run -d -p 9200:9200 -p 9300:9300 elasticsearch
     ```
-3. Install CLR web client on SQL Server.
-
+1. Install CLR web client on SQL Server.
 
     ```SQL
     exec sp_configure 'clr enabled', 1;
@@ -34,7 +30,7 @@ This repository contains **dll** file for SQL Server.
 
     ```
 
-4. ADD Function on SQL Server.
+1. ADD Function on SQL Server.
 
     ```SQL
     CREATE FUNCTION dbo.fn_get_webrequest(
@@ -59,7 +55,7 @@ This repository contains **dll** file for SQL Server.
     GO
     ```
 
-5. Test SQL server to Elasticsearch.
+1. Test SQL server to Elasticsearch.
 
     ```sql
     PRINT dbo.fn_get_webrequest('http://127.0.01:9200', NULL, NULL);
@@ -80,7 +76,6 @@ This repository contains **dll** file for SQL Server.
     }
     ```
 
-
 ### Usage
 
 1. Add Sample Document.
@@ -96,7 +91,6 @@ This repository contains **dll** file for SQL Server.
         , NULL
         , NULL)  as result;
     ```
-
 
     result
     ```json
@@ -115,7 +109,7 @@ This repository contains **dll** file for SQL Server.
     }
     ```
 
-2. Get SQL Result for Elasticsearch.
+1. Get SQL Result for Elasticsearch.
 
     ```sql
     SELECT dbo.fn_get_webrequest(
@@ -155,23 +149,21 @@ This repository contains **dll** file for SQL Server.
 
 #### Elasticsearch Result handle on SQL Server
 
-
 ```sql
     SELECT *
     FROM OPENJSON(
         dbo.fn_get_webrequest('http://127.0.01:9200/twitter/_mapping', null, null)
-        ,	N'lax $.twitter.mappings.tweet.properties'
+        , N'lax $.twitter.mappings.tweet.properties'
     ) as result
 ```
 
 result
 
-| key | value | type | 
+| key | value | type |
 | ------ | ------ | ------ |
-| message | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 | 
-| post_date | {"type":"date"} | 5 | 
-| user | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 | 
-
+| message | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 |
+| post_date | {"type":"date"} | 5 |
+| user | {"type":"text","fields":{"keyword":{"type":"keyword","ignore_above":256}}} | 5 |
 
 ```sql
 DECLARE @term NVARCHAR(MAX)
@@ -184,9 +176,9 @@ SET @body = '{
     , "size" : 2000
     ,"sort" : ["_score",{ "post_date" : {"order" : "desc"}}]
     , "query" : {
-        "multi_match" : { 
+        "multi_match" : {
             "query" : "' +@term+'"
-            , "fields" : ["user", "message"] 
+            , "fields" : ["user", "message"]
             }
         }
     }';
@@ -194,13 +186,14 @@ SET @body = '{
 SET @json = dbo.fn_post_webrequest('http://127.0.01:9200/_search?scroll=15s', @body, null, null) ;
 
 SELECT *
-FROM OPENJSON(@json, N'lax $.hits.hits')  
+FROM OPENJSON(@json, N'lax $.hits.hits')
 WITH (
     post_date nvarchar(max) N'$._source."post_date"'
     , tweet_user nvarchar(max) N'$._source."user"'
     , message nvarchar(max) N'$._source."message"'
 ) as result
 ```
+
 result
 
 | post_date | tweet_user | message |
