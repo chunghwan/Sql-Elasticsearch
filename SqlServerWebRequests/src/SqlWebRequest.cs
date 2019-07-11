@@ -98,4 +98,60 @@ public partial class Functions
             webresponse.Close();
         }
     }
+
+    // Function to HTTP PUT
+    [Microsoft.SqlServer.Server.SqlFunction(DataAccess = DataAccessKind.Read)]
+    public static SqlString PUT(
+        SqlString uri, SqlString putdata, SqlString username, SqlString password)
+    {
+        byte[] putbytearray = Encoding.UTF8.GetBytes(Convert.ToString(putdata));
+
+        WebRequest request = WebRequest.Create(Convert.ToString(uri));
+        ((HttpWebRequest)request).UserAgent = "CLR web client on SQL Server";
+        if (username.IsNull == false & password.IsNull == false)
+        {
+            request.Credentials = new NetworkCredential(username.Value, password.Value);
+        }
+        request.Method = "PUT";
+        request.ContentType = "application/x-www-form-urlencoded";
+
+        // Submit the PUT data
+        Stream datastream = null;
+        try
+        {
+            datastream = request.GetRequestStream();
+            datastream.Write(putbytearray, 0, putbytearray.Length);
+        }
+        catch (Exception exception)
+        {
+            return ((SqlString)exception.ToString());
+        }
+        finally
+        {
+            datastream.Close();
+        }
+
+        // Collect the response, put it in the string variable "document"
+        WebResponse webresponse = null;
+        StreamReader streamreader = null;
+        try
+        {
+            webresponse = request.GetResponse();
+            datastream = webresponse.GetResponseStream();
+            streamreader = new StreamReader(datastream);
+            return ((SqlString)streamreader.ReadToEnd());
+        }
+        catch (Exception exception)
+        {
+            return ((SqlString)exception.ToString());
+        }
+        finally
+        {
+            streamreader.Close();
+            datastream.Close();
+            webresponse.Close();
+        }
+    }
+
+
 }
